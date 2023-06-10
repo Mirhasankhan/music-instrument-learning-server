@@ -26,14 +26,19 @@ async function run() {
         await client.connect();
         const usersCollection = client.db('users').collection('user')
         const classCollection = client.db('users').collection('class')
+        
         // All user apis
         app.get('/users', async (req, res) => {
-            const result = await usersCollection.find().toArray()
+            let instructors = {}
+            if (req.query?.role) {
+                instructors = { role: req.query.role }
+            }
+            const result = await usersCollection.find(instructors).toArray()
             res.send(result)
         })
 
         app.post('/users', async (req, res) => {
-            const user = req.body;          
+            const user = req.body;
             const query = { email: user.email }
             const existingUser = await usersCollection.findOne(query);
             if (existingUser) {
@@ -64,33 +69,41 @@ async function run() {
             }
             const result = await usersCollection.updateOne(filter, updatedUser)
             res.send(result)
-        })
+        })       
 
-        app.get('/instructors', async(req, res)=>{
-            let instructors = {}
-            if(req.query?.role){
-                instructors = {role: req.query.role}
-            }
-            const result = await usersCollection.find(instructors).toArray()
-            res.send(result)
-        })
-        
         // add class api
-        app.get('/classes', async(req, res)=>{
-            const result = await classCollection.find().toArray()
+        app.get('/classes', async (req, res) => {
+            let approved = {}
+            if (req.query.status) {
+                approved = { status: req.query.status }
+            }
+            const result = await classCollection.find(approved).toArray()
             res.send(result)
         })
 
-        app.get('/myClasses', async(req, res)=>{
+        app.patch('/classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    status: 'approved'
+                }
+            }
+            const result = await classCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
+
+        app.get('/myClasses', async (req, res) => {
             let email = {}
-            if(req.query.email){
-                email = {email: req.query.email}
+            if (req.query.email) {
+                email = { email: req.query.email }
             }
             const result = await classCollection.find(email).toArray()
             res.send(result)
         })
 
-        app.post('/classes', async(req, res)=>{
+        app.post('/classes', async (req, res) => {
             const newClass = req.body
             const result = await classCollection.insertOne(newClass)
             res.send(result)
