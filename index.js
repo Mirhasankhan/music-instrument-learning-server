@@ -65,9 +65,28 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updatedUser)
             res.send(result)
         })
+
+        app.get('/instructors', async(req, res)=>{
+            let instructors = {}
+            if(req.query?.role){
+                instructors = {role: req.query.role}
+            }
+            const result = await usersCollection.find(instructors).toArray()
+            res.send(result)
+        })
+        
         // add class api
         app.get('/classes', async(req, res)=>{
             const result = await classCollection.find().toArray()
+            res.send(result)
+        })
+
+        app.get('/myClasses', async(req, res)=>{
+            let email = {}
+            if(req.query.email){
+                email = {email: req.query.email}
+            }
+            const result = await classCollection.find(email).toArray()
             res.send(result)
         })
 
