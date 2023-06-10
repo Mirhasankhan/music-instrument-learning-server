@@ -26,6 +26,7 @@ async function run() {
         await client.connect();
         const usersCollection = client.db('users').collection('user')
         const classCollection = client.db('users').collection('class')
+        const SelectedClassCollection = client.db('users').collection('selected')
         
         // All user apis
         app.get('/users', async (req, res) => {
@@ -93,6 +94,18 @@ async function run() {
             const result = await classCollection.updateOne(filter, updatedDoc, options)
             res.send(result)
         })
+        app.patch('/class/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    status: 'denied'
+                }
+            }
+            const result = await classCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
 
         app.get('/myClasses', async (req, res) => {
             let email = {}
@@ -106,6 +119,18 @@ async function run() {
         app.post('/classes', async (req, res) => {
             const newClass = req.body
             const result = await classCollection.insertOne(newClass)
+            res.send(result)
+        })
+
+        // students selected class apis
+        app.get('/selected', async(req, res)=>{
+            const result = await SelectedClassCollection.find().toArray()
+            res.send(result)
+        })
+
+        app.post('/selected', async(req, res)=>{
+            const selectedClass = req.body;
+            const result = await SelectedClassCollection.insertOne(selectedClass)
             res.send(result)
         })
 
