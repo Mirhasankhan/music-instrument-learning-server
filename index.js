@@ -123,7 +123,7 @@ async function run() {
         })
 
         // students selected class apis
-        app.get('/selected', async (req, res) => {
+        app.get('/selecte', async (req, res) => {
             const result = await SelectedClassCollection.find().toArray()
             res.send(result)
         })
