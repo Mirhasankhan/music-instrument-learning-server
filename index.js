@@ -36,7 +36,7 @@ async function run() {
             }
             const result = await usersCollection.find(instructors).toArray()
             res.send(result)
-        })        
+        })
 
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -123,14 +123,27 @@ async function run() {
         })
 
         // students selected class apis
-        app.get('/selecte', async (req, res) => {
-            const result = await SelectedClassCollection.find().toArray()
+        app.get('/selected', async (req, res) => {
+            const query = req.query
+            const result = await SelectedClassCollection.find(query).toArray()
             res.send(result)
         })
 
         app.post('/selected', async (req, res) => {
             const selectedClass = req.body;
+            // const query = { class: selectedClass.class }
+            // const existingClass = await SelectedClassCollection.findOne(query);
+            // if (existingClass) {
+            //     return res.send({ message: 'Class already Selected' })
+            // }
             const result = await SelectedClassCollection.insertOne(selectedClass)
+            res.send(result)
+        })
+
+        app.delete('/selected/:id', async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: new ObjectId(id) }
+            const result = SelectedClassCollection.deleteOne(filter)
             res.send(result)
         })
 
