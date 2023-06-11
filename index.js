@@ -27,7 +27,7 @@ async function run() {
         const usersCollection = client.db('users').collection('user')
         const classCollection = client.db('users').collection('class')
         const SelectedClassCollection = client.db('users').collection('selected')
-        
+
         // All user apis
         app.get('/users', async (req, res) => {
             let instructors = {}
@@ -36,7 +36,7 @@ async function run() {
             }
             const result = await usersCollection.find(instructors).toArray()
             res.send(result)
-        })
+        })        
 
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -70,7 +70,7 @@ async function run() {
             }
             const result = await usersCollection.updateOne(filter, updatedUser)
             res.send(result)
-        })       
+        })
 
         // add class api
         app.get('/classes', async (req, res) => {
@@ -123,12 +123,12 @@ async function run() {
         })
 
         // students selected class apis
-        app.get('/selected', async(req, res)=>{
+        app.get('/selected', async (req, res) => {
             const result = await SelectedClassCollection.find().toArray()
             res.send(result)
         })
 
-        app.post('/selected', async(req, res)=>{
+        app.post('/selected', async (req, res) => {
             const selectedClass = req.body;
             const result = await SelectedClassCollection.insertOne(selectedClass)
             res.send(result)
