@@ -121,6 +121,20 @@ async function run() {
             res.send(result)
         })
 
+         app.patch('/class/update/:id', async (req, res) => {
+            const id = req.params.id;
+            const body = req.body
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true }
+            const updatedClass = {
+                $set: {
+                    feedback: body.feedback
+                }
+            }
+            const result = await classCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
+
         app.get('/myClasses', async (req, res) => {
             let email = {}
             if (req.query.email) {
@@ -130,7 +144,7 @@ async function run() {
             res.send(result)
         })
 
-        app.put('/myClasses/:id', async(req, res)=>{
+        app.patch('/myClasses/:id', async(req, res)=>{
             const id = req.params.id
             const body = req.body;
             const filter = {_id: new ObjectId(id)}
@@ -138,7 +152,7 @@ async function run() {
             const updatedClass = {
                 $set: {
                     class: body.class,
-                    seats: body.seats,                  
+                    seats: body.seats,                
                                 
                                       
                 }
