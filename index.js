@@ -3,11 +3,29 @@ const app = express()
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middlewares
 app.use(cors())
 app.use(express.json())
+
+const verifyJWT = (req, res,next)=>{
+    const authorization = req.headers.authorization;
+    if(!authorization){
+        return res.status(401).send({error: true, message: 'Unauthorized access'})
+    }
+    const token = authorization.split(" ")[1]
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
+        if(err){
+            return res.status(403).send({error: true, message: "Unauthorized access"})
+        }
+        req.decoded = decoded;
+        next()
+    })
+
+}
 
 const uri = `mongodb+srv://TuneTutor:DhjSC6p1oHugP2JR@cluster0.cpvrkgd.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -27,6 +45,13 @@ async function run() {
         const usersCollection = client.db('users').collection('user')
         const classCollection = client.db('users').collection('class')
         const SelectedClassCollection = client.db('users').collection('selected')
+        const PaymentCollection = client.db('users').collection('payments')
+
+        // app.post('/jwt', (req, res)=>{
+        //     const user = req.body;
+        //     const token =  jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
+        //     res.send({token})
+        // })
 
         // All user apis
         app.get('/users', async (req, res) => {
@@ -60,7 +85,7 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updatedUser)
             res.send(result)
         })
-       
+
         app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id
             const filter = { _id: new ObjectId(id) }
@@ -75,7 +100,7 @@ async function run() {
 
         // add class api
         app.get('/classes', async (req, res) => {
-            let approved = {}
+            let approved = {}            
             if (req.query.status) {
                 approved = { status: req.query.status }
             }
@@ -121,20 +146,6 @@ async function run() {
             res.send(result)
         })
 
-         app.patch('/class/update/:id', async (req, res) => {
-            const id = req.params.id;
-            const body = req.body
-            const filter = { _id: new ObjectId(id) }
-            const options = { upsert: true }
-            const updatedClass = {
-                $set: {
-                    feedback: body.feedback
-                }
-            }
-            const result = await classCollection.updateOne(filter, updatedDoc, options)
-            res.send(result)
-        })
-
         app.get('/myClasses', async (req, res) => {
             let email = {}
             if (req.query.email) {
@@ -144,17 +155,17 @@ async function run() {
             res.send(result)
         })
 
-        app.patch('/myClasses/:id', async(req, res)=>{
+        app.patch('/myClasses/:id', async (req, res) => {
             const id = req.params.id
             const body = req.body;
-            const filter = {_id: new ObjectId(id)}
+            const filter = { _id: new ObjectId(id) }
             const options = { upsert: true };
             const updatedClass = {
                 $set: {
                     class: body.class,
-                    seats: body.seats,                
-                                
-                                      
+                    seats: body.seats,
+
+
                 }
             }
             const result = await classCollection.updateOne(filter, updatedClass, options);
@@ -191,6 +202,33 @@ async function run() {
             const filter = { _id: new ObjectId(id) }
             const result = SelectedClassCollection.deleteOne(filter)
             res.send(result)
+        })
+
+        // create payment intent
+        app.post('/create-payment-intent', async(req, res)=>{
+            const {price} = req.body
+            const amount = parseInt(price *100);
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            })
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
+
+        app.post('/payments', async(req, res)=>{
+            const payment = req.body;
+            const insertResult = await PaymentCollection.insertOne(payment)
+            const query = { _id: new ObjectId(payment.classId) };
+            const deleteResult = await SelectedClassCollection.deleteOne(query);
+            const result = await classCollection.findOneAndUpdate(
+                { _id: new ObjectId(payment.classId) },
+                { $inc: { seats: -1, enrolled: 1 } },
+                { returnOriginal: false }
+              );
+            res.send({insertResult, deleteResult, result})
         })
 
         // Send a ping to confirm a successful connection
